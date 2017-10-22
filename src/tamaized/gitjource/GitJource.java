@@ -1,16 +1,14 @@
 package tamaized.gitjource;
 
+import com.google.common.io.Resources;
+import com.google.gson.stream.JsonReader;
+import org.apache.commons.io.FileUtils;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-
-import org.apache.commons.io.FileUtils;
-
-import com.google.common.io.Resources;
-import com.google.gson.stream.JsonReader;
 
 public class GitJource {
 
@@ -19,14 +17,13 @@ public class GitJource {
 	public static void main(String[] args) {
 		try {
 			if (args.length > 1) {
-
 				String username = args[0];
 				String repo = args[1];
 				String repoURL = "https://api.github.com/repos/" + username + "/" + repo + "/";
 
-				decodeJSON(repoURL + "contributors");
+				decodeContributors(repoURL + "contributors");
 
-				ProcessBuilder builder = new ProcessBuilder(new String[] { "gource", "--user-image-dir", avatarLoc, "--seconds-per-day", args.length > 2 ? args[2] : "10" });
+				ProcessBuilder builder = new ProcessBuilder("gource", "--user-image-dir", avatarLoc, "--seconds-per-day", args.length > 2 ? args[2] : "10");
 				builder.start();
 			} else {
 				System.out.println("Not enough Args");
@@ -36,7 +33,7 @@ public class GitJource {
 		}
 	}
 
-	private static void decodeJSON(String url) throws MalformedURLException, IOException {
+	private static void decodeContributors(String url) throws IOException {
 		BufferedReader reader = Resources.asCharSource(new URL(url), StandardCharsets.UTF_8).openBufferedStream();
 		JsonReader json = new JsonReader(reader);
 		{
@@ -55,6 +52,9 @@ public class GitJource {
 								case "avatar_url":
 									avatar = json.nextString();
 									break;
+								case "url":
+									user = decodeUsername(json.nextString(), user);
+									break;
 								default:
 									json.skipValue();
 									break;
@@ -69,6 +69,34 @@ public class GitJource {
 			json.endArray();
 		}
 		json.close();
+	}
+
+	private static String decodeUsername(String url, String user) throws IOException {
+		String username = user;
+		BufferedReader reader = Resources.asCharSource(new URL(url), StandardCharsets.UTF_8).openBufferedStream();
+		JsonReader json = new JsonReader(reader);
+		{
+			try {
+				json.beginObject();
+				{
+					while (json.hasNext()) {
+						switch (json.nextName()) {
+							case "name":
+								username = json.nextString();
+								break;
+							default:
+								json.skipValue();
+								break;
+						}
+					}
+				}
+				json.endObject();
+			} catch (IllegalStateException e) {
+				// NO-OP
+			}
+		}
+		json.close();
+		return username;
 	}
 
 }
