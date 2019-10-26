@@ -21,7 +21,7 @@ public class GitJource {
 				String repo = args[1];
 				String repoURL = "https://api.github.com/repos/" + username + "/" + repo + "/";
 
-				decodeContributors(repoURL + "contributors");
+				decodeContributors(repoURL + "contributors?anon=1");
 
 				ProcessBuilder builder = new ProcessBuilder("gource", "--user-image-dir", avatarLoc, "--seconds-per-day", args.length > 2 ? args[2] : "10");
 				builder.start();
@@ -43,6 +43,7 @@ public class GitJource {
 					json.beginObject();
 					{
 						String user = "";
+						String alias = "";
 						String avatar = "";
 						while (json.hasNext()) {
 							switch (json.nextName()) {
@@ -53,7 +54,7 @@ public class GitJource {
 									avatar = json.nextString();
 									break;
 								case "url":
-									user = decodeUsername(json.nextString(), user);
+									alias = decodeUsername(json.nextString(), user);
 									break;
 								default:
 									json.skipValue();
@@ -61,7 +62,12 @@ public class GitJource {
 							}
 						}
 						System.out.println("Downloading Avatar for " + user);
-						FileUtils.copyURLToFile(new URL(avatar), new File(avatarLoc + user + ".png"));
+						File f = new File(avatarLoc + user + ".png");
+						FileUtils.copyURLToFile(new URL(avatar), f);
+						if (!alias.isEmpty() && !alias.equalsIgnoreCase(user)) {
+							FileUtils.copyFile(f, new File(avatarLoc + alias + ".png"));
+							System.out.println("Copied for alias: " + alias);
+						}
 					}
 					json.endObject();
 				}
