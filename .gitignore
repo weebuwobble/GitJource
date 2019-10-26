@@ -1,8 +1,12 @@
 *
-!.gitignore
+!gradlew
+!gradlew.bat
+!/gradle
+!/gradle/**
 !/src/
 !/src/**
-!/lib/
-!/lib/**
+/src/test/
+!build.gradle
+!gradle.properties
 !LICENSE
 !README.md
